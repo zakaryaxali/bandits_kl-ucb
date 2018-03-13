@@ -42,7 +42,7 @@ class KLUCBPolicy :
         q = min(1 - self.DELTA , max(q - f / df, p + self.DELTA))
 
         if(not converged):
-            print("WARNNG:Newton iteration in KL-UCB algorithm did not converge! p=" + str(p) + " logndn=" + str(logndn))
+            print("KL-UCB algorithm: Newton iteration in did not converge! p=" + str(p) + " logndn=" + str(logndn))
 
         return q
 
