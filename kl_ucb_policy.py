@@ -1,7 +1,11 @@
 import numpy as np
 
 class KLUCBPolicy :
-    def __init__(self, K, delta):
+    """
+    Two policies : Bernoulli or Exponential
+    """
+    def __init__(self, K, delta, policy = "bernoulli"):
+        #TODO : Add kl_ucb_exp
         self.K = K
         self.delta = delta
         self.EPS = 10**(-12)
@@ -23,12 +27,12 @@ class KLUCBPolicy :
         logndn = np.log(n)/self.N[k]
         arg1=self.S[k]/self.N[k]
         #print("arg1 =", arg1)
-        p = max(arg1, self.delta)
+        p = max(arg1, np.mean(self.delta))
         if(p>=1):
             return 1
 
         converged = False
-        q = p + self.delta
+        q = p + np.mean(self.delta)
 
         for t in range(20):
             f  = logndn - self.kl_distance(p, q)
@@ -38,7 +42,7 @@ class KLUCBPolicy :
                 converged = True
                 break
 
-        q = min(1 - self.delta , max(q - f / df, p + self.delta))
+        q = min(1 - np.mean(self.delta) , max(q - f / df, p + np.mean(self.delta)))
 
         if(not converged):
             print("KL-UCB algorithm: Newton iteration did not converge!", "p=", p, "logndn=", logndn)
