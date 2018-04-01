@@ -1,11 +1,11 @@
 import numpy as np
-
+from numba import jit
 
 def kl_bernoulli(p, q):
     """
     Compute kl-divergence for Bernoulli distributions
     """
-    result =  p * np.log(p/q) + (1-p)*np.log((1-p)/(1-q))
+    result = p * np.log(p/q) + (1-p)*np.log((1-p)/(1-q))
     return result
 
 def dkl_bernoulli(p, q):
@@ -16,10 +16,14 @@ def kl_exponential(p, q):
     """
     Compute kl-divergence for Exponential distributions
     """
-    result =  (p/q) - 1 - np.log(p/q)
+    result = (p/q) - 1 - np.log(p/q)
     return result
 
-def klucb_upper_newton(kl_distance, N, S, k, t, precision = 1e-6, max_iterations = 50):
+def dkl_exponential(p, q):
+    result = (q-p)/(q**2)
+    return result
+
+def klucb_upper_newton(kl_distance, N, S, k, t, precision = 1e-6, max_iterations = 50, dkl = dkl_bernoulli):
     """
     Compute the upper confidence bound for each arm using Newton's iterations method
     """
@@ -34,7 +38,7 @@ def klucb_upper_newton(kl_distance, N, S, k, t, precision = 1e-6, max_iterations
 
     for n in range(max_iterations):
         f  = logtdt - kl_distance(p, q)
-        df = - dkl_bernoulli(p, q) #TODO : cas bernoulli et exponentiel
+        df = - dkl(p, q)
 
         if(f*f < precision):
             converged = True
@@ -52,19 +56,19 @@ def klucb_upper_bisection(kl_distance, N, S, k, t, precision = 1e-6, max_iterati
     Compute the upper confidence bound for each arm with bisection method
     """
     upperbound = np.log(t)/N[k]
-    reward=S[k]/N[k]
+    reward = S[k]/N[k]
 
     u = upperbound
     l = reward
     n = 0
 
     while n < max_iterations and u - l > precision:
-        n += 1
         q = (l + u)/2
         if kl_distance(reward, q) > upperbound:
             u = q
         else:
             l = q
+        n += 1
 
     return (l+u)/2
 
@@ -72,10 +76,12 @@ class KLUCBPolicy :
     """
     KL-UCB algorithm
     """
-    def __init__(self, K, kl_distance = kl_bernoulli, klucb_upper = klucb_upper_bisection):
+    def __init__(self, K, klucb_upper = klucb_upper_bisection, kl_distance = kl_bernoulli, precision = 1e-6, max_iterations = 50):
         self.K = K
         self.kl_distance = kl_distance
         self.klucb_upper = klucb_upper
+        self.precision = precision
+        self.max_iterations = max_iterations
         self.reset()
 
     def reset(self):
@@ -90,10 +96,10 @@ class KLUCBPolicy :
                 return k
 
             #KL-UCB index
-            indices[k] = self.klucb_upper(self.kl_distance, self.N, self.S, k, t)
+            indices[k] = self.klucb_upper(self.kl_distance, self.N, self.S, k, t, self.precision, self.max_iterations)
 
-        target_arm = np.argmax(indices)
-        return target_arm
+        selected_arm = np.argmax(indices)
+        return selected_arm
 
     def update_state(self, k, r):
         self.N[k] += 1
