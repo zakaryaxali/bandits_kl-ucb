@@ -6,14 +6,14 @@ def write_data(sub_arm_list, total_rewards_list, name):
     """
     Write data in file
     """
-    filename = 'data/scenario_1' + name + '.pkl'
+    filename = 'data/scenario_1_' + name + '.pkl'
 
     if os.path.exists(filename) :
        update_data_file(sub_arm_list, total_rewards_list, filename)
     else :
        create_data_file(sub_arm_list, total_rewards_list, filename)
 
-def create_data_file(sub_arm_list, filename):
+def create_data_file(sub_arm_list, total_rewards_list, filename):
     """
     Create file and add data
     """
@@ -25,7 +25,7 @@ def create_data_file(sub_arm_list, filename):
     pickle.dump(parameters, output)
     output.close()
 
-def update_data_file(sub_arm_list, filename):
+def update_data_file(sub_arm_list, total_rewards_list, filename):
     """
     Update data in file
     """
@@ -34,7 +34,7 @@ def update_data_file(sub_arm_list, filename):
     parameters['sub_arm_list'] += sub_arm_list
     parameters['total_rewards_list'] = np.concatenate((parameters['total_rewards_list'], total_rewards_list), axis=0)
     #write
-    write = open(file, 'wb')
+    write = open(filename, 'wb')
     pickle.dump(parameters, write)
     write.close()
 
@@ -53,3 +53,16 @@ def read_file(filename):
     parameters = pickle.load(read)
     read.close()
     return parameters
+
+def get_results(total_rewards_list, sub_arm_list):
+    """
+    return results data for scenario 1 and 2 graphs
+    """
+    runs = len(sub_arm_list)
+    mean_total_rewards_list = np.mean(total_rewards_list, axis=0)
+    mean_sub_arm = np.mean(sub_arm_list, axis=0 ) #Mean number of the suboptimal arm as a function of time
+    sub_arm_draws_T = np.zeros(runs) #number of draws of the suboptimal arm at tim n=5000
+    for i in range(runs):
+        sub_arm_draws_T[i] = np.sum(sub_arm_list[i][:5000])
+    
+    return mean_total_rewards_list, mean_sub_arm, sub_arm_draws_T
